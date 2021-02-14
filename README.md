@@ -215,3 +215,153 @@ http://0fps.wordpress.com/2013/07/03/ambient-occlusion-for-minecraft-like-worlds
 * lodepng is used for loading PNG textures.
 * sqlite3 is used for saving the blocks added / removed by the user.
 * tinycthread is used for cross-platform threading.
+
+#### build 2021.02.14
+
+编译请在 cmd 敲打
+
+```bash
+cmake . -G "MinGW Makefiles" -DCURL_LIBRARIES="C:/Program Files/CURL/lib/libcurl.dll" -DCURL_INCLUDE_DIR="C:/Program Files/CURL/include"
+mingw32-make
+```
+
+在项目根目录编译，不要像下面建新目录了
+
+```bash
+mkdir build && pushd build
+...
+```
+
+两个原因，原理是 craft.exe 会生成在 build 目录中，这样
+
+1. craft.exe 启动时依赖 libcurl.dll，会找不到
+2. craft.exe 启动时需要加载贴图，都在 textures 目录下，也找不到
+
+mingw32-make 会调用 gcc，所以还得看一下 gcc 的版本用的对不对
+
+```bash
+gcc -v
+Using built-in specs.
+COLLECT_GCC=D:\MinGW\bin\gcc.exe
+COLLECT_LTO_WRAPPER=d:/mingw/bin/../libexec/gcc/mingw32/9.2.0/lto-wrapper.exe
+Target: mingw32
+Configured with: ../src/gcc-9.2.0/configure --build=x86_64-pc-linux-gnu --host=mingw32 --target=mingw32 --disable-win32-registry --with-arch=i586 --with-tune=generic --enable-static --enable-shared --enable-threads --enable-languages=c,c++,objc,obj-c++,fortran,ada --with-dwarf2 --disable-sjlj-exceptions --enable-version-specific-runtime-libs --enable-libgomp --disable-libvtv --with-libiconv-prefix=/mingw --with-libintl-prefix=/mingw --enable-libstdcxx-debug --disable-build-format-warnings --prefix=/mingw --with-gmp=/mingw --with-mpfr=/mingw --with-mpc=/mingw --with-isl=/mingw --enable-nls --with-pkgversion='MinGW.org GCC Build-2'
+Thread model: win32
+gcc version 9.2.0 (MinGW.org GCC Build-2)
+```
+
+**注意 mingw32 字样。如果不对，请调整 $PATH 优先级。通常它是找不到某某头文件的罪魁祸首，因为平台弄错了。**
+
+项目依赖的三个库
+
+1. CMake 可以通过 Windows 版的安装文件 msi 安装
+2. MinGW 需要下载 MinGW Install Manager 安装，主要是为了得到那个 mingw32-make 命令
+3. cURL 需要源码编译
+
+#### 编译 curl
+
+curl 是自己编译的，所以才在 C:/Program Files/CURL/ 目录下
+
+curl 最新版仅提供源码了，没有编译后的binary。所以，你还得知道
+
+curl 编译依赖三个库
+
+1. zlib http://www.zlib.net/
+2. openssl https://github.com/openssl/openssl/releases 注意不要用那些 alpha 版本
+3. libssh2 这里 libssh2 又依赖上面两个库
+
+编译过程请参考 https://www.cnblogs.com/wunaozai/p/4495441.html 整个编译过程都是在 msys.bat 控制台下进行的
+
+1. zlib
+
+```bash
+make -f win32/Makefile.gcc
+```
+
+2. openssl
+
+```bash
+./Configure -DHAVE_STRUCT_TIMESPEC -L/mingw/lib -lz -lws2_32 --prefix=/mingw zlib mingw
+make && make install
+```
+
+--prefix=/mingw 就是 MinGW 的安装目录，在 msys.bat 中相当于根目录 /
+
+3. libssh2
+
+网上说这么编
+
+```bash
+./configure --prefix=/mingw --with-libz --with-openssl
+```
+
+但是 configure 不是默认就有的，得想个办法生成
+
+CSDN上说要这样
+
+```bash
+aclocal
+autoconf --force
+autoheader
+automake --add-missing
+```
+
+然后 [issue#101](https://github.com/libssh2/libssh2/issues/101) 就会有人来打脸了。你只需要这样
+
+```bash
+./buildconf
+make && make install
+```
+
+4. 编译 curl
+
+无加密版
+
+```bash
+pushd lib && mingw32-make -f Makefile.m32 && popd
+pushd src && mingw32-make -f Makefile.m32 && popd
+```
+
+得到 .exe .a .lib .dll
+
+有加密版，需要建立一个 deps 目录
+
+```
+ If you wish to support zlib, openssl, c-ares, ssh2, you will have to download
+ them separately and copy them to the deps directory as shown below:
+
+    somedirectory\
+     |_curl-src
+     | |_winbuild
+     |
+     |_deps
+       |_ lib
+       |_ include
+       |_ bin
+```
+
+所以 zlib openssl ssh2 的安装目录 --prefix=/mingw 我们应该设成  ../deps
+
+或者直接把根目录的三个目录覆盖过来
+
+控制打开 "适用于 VS 2017 的 x86 本机工具命令提示" 进入 winbuild 建立 bat 文件执行
+
+```bat
+@REM @echo off
+
+@IF [%1]==[debug] (
+
+@echo 正在使用debug模式编译libcurl~~~
+
+@nmake /f Makefile.vc mode=static VC=15 WITH_SSL=static WITH_ZLIB=static WITH_SSH2=static ENABLE_IDN=no RTLIBCFG=static DEBUG=yes MACHINE=x86
+
+) ELSE (
+
+@echo 正在使用release模式编译libcurl~~~
+
+@nmake /f Makefile.vc mode=static VC=15 WITH_SSL=static WITH_ZLIB=static WITH_SSH2=static ENABLE_IDN=no RTLIBCFG=static DEBUG=no MACHINE=x86
+
+)
+
+@REM @echo on
+```

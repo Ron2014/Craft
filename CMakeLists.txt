@@ -28,10 +28,26 @@ if(MINGW)
         "C:/Program Files/CURL/lib" "C:/Program Files (x86)/CURL/lib")
     set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
         "C:/Program Files/CURL/include" "C:/Program Files (x86)/CURL/include")
+#    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
+#        "E:/SourceCode/curl-7.75.0/lib")
+#    set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
+#        "E:/SourceCode/curl-7.75.0/include")
 endif()
 
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIR})
+
+if(NOT GLFW_LIBRARIES)
+message("====== GLFW NOT FOUND")
+endif()
+
+if(NOT CURL_LIBRARIES)
+message("====== CURLS NOT FOUND")
+endif()
+
+message("====== ${CURL_INCLUDE_DIR}")
+message("====== ${CURL_LIBRARIES}")
+message("====== ${GLFW_LIBRARIES}")
 
 if(APPLE)
     target_link_libraries(craft glfw
