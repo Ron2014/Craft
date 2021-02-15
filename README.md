@@ -270,6 +270,8 @@ curl 编译依赖三个库
 2. openssl https://github.com/openssl/openssl/releases 注意不要用那些 alpha 版本
 3. libssh2 这里 libssh2 又依赖上面两个库
 
+##### MinGW 编译
+
 编译过程请参考 https://www.cnblogs.com/wunaozai/p/4495441.html 整个编译过程都是在 msys.bat 控制台下进行的
 
 1. zlib
@@ -286,6 +288,13 @@ make && make install
 ```
 
 --prefix=/mingw 就是 MinGW 的安装目录，在 msys.bat 中相当于根目录 /
+
+如果是 Windows 编译，开启 VS2017控制台，用下列命令
+
+```bash
+perl Configure VC-WIN32 --prefix=E:\SourceCode\deps
+nmake install
+```
 
 3. libssh2
 
@@ -313,7 +322,53 @@ automake --add-missing
 make && make install
 ```
 
-4. 编译 curl
+##### MSVC 编译
+
+1. zlib
+
+zlib 是存在 CMakeLists.txt 的，直接用 cmake 方式编译
+
+```bash
+mkdir build && pushd build
+cmake .. -DCMAKE_INSTALL_PREFIX=E:\SourceCode\deps
+cmake --build . --config release
+cmake --install .
+popd
+```
+
+2. openssl
+
+开启 VS2017 控制台，用下列命令
+
+```bash
+perl Configure VC-WIN32 no-asm --prefix=E:\SourceCode\deps --openssldir=E:\SourceCode\deps
+ms\do_ms.bat
+nmake -f ms\nt.mak install
+nmake -f ms\ntdll.mak install
+```
+
+**在1.0.x之前的版本中,文件为libeay32.dll和ssleay32.dll,在1.1.x之后的版本中，名字是libssl.dll和libcrypto.dll。**
+
+所以对编译结果复制改名好了。
+
+3. libssh2
+
+```bash
+mkdir build && pushd build
+cmake .. -DCMAKE_INSTALL_PREFIX=E:\SourceCode\deps -DCRYPTO_BACKEND=OpenSSL -DENABLE_ZLIB_COMPRESSION=ON
+cmake --build . --target install
+```
+
+中间会遇到一些插曲，找不到一些头文件，是因为查到 D:\MinGW 目录去了。MSVC 编译怎么会找到这里呢，发现 cmake .. -G "Visual Studio 15 2017" 都没有用，索性直接把 MinGW 删除了。
+
+实在不放心的可以在 CMakeLists.txt 中加入
+
+```
+SET(CMAKE_INCLUDE_PATH "E:/SourceCode/deps/include")
+SET(CMAKE_LIBRARY_PATH "E:/SourceCode/deps/lib")
+```
+
+##### 编译 curl
 
 无加密版
 
