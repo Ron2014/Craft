@@ -25,13 +25,13 @@ include_directories(deps/tinycthread)
 
 if(MINGW)
     set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-        "C:/Program Files/CURL/lib" "C:/Program Files (x86)/CURL/lib")
+        "C:/Program Files/CURL/bib" "C:/Program Files (x86)/CURL/lib")
     set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
         "C:/Program Files/CURL/include" "C:/Program Files (x86)/CURL/include")
 #    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
-#        "E:/SourceCode/curl-7.75.0/lib")
+#        "E:/GitHub/MineCraft/deps/CURL/lib")
 #    set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
-#        "E:/SourceCode/curl-7.75.0/include")
+#        "E:/GitHub/MineCraft/deps/CURL/include")
 endif()
 
 find_package(CURL REQUIRED)

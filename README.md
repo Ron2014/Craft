@@ -221,8 +221,18 @@ http://0fps.wordpress.com/2013/07/03/ambient-occlusion-for-minecraft-like-worlds
 编译请在 cmd 敲打
 
 ```bash
-cmake . -G "MinGW Makefiles" -DCURL_LIBRARIES="C:/Program Files/CURL/lib/libcurl.dll" -DCURL_INCLUDE_DIR="C:/Program Files/CURL/include"
-mingw32-make
+cmake . -G "MinGW Makefiles"
+set PATH=C:\MinGW\bin;%PATH%
+mingw32-make # 也可以 cmake --build . --config release
+```
+
+加了一些打印，就能看出来有没有找到 CURL 库了
+
+```
+-- Found CURL: C:/Program Files (x86)/CURL/lib/libcurl_imp.lib (found version "7.75.0")
+====== C:/Program Files (x86)/CURL/include
+====== C:/Program Files (x86)/CURL/lib/libcurl_imp.lib
+====== opengl32
 ```
 
 在项目根目录编译，不要像下面建新目录了
@@ -249,6 +259,25 @@ Configured with: ../src/gcc-9.2.0/configure --build=x86_64-pc-linux-gnu --host=m
 Thread model: win32
 gcc version 9.2.0 (MinGW.org GCC Build-2)
 ```
+
+有个小插曲就是老出现 `unresolved external symbol __imp_curl_easy_init` 的报错
+
+发现这条 error log 前面说的是用的 Strawberry 的 gcc
+
+```
+E:\GitHub\MineCraft>D:\Strawberry\c\bin\gcc.exe -v
+Using built-in specs.
+COLLECT_GCC=D:\Strawberry\c\bin\gcc.exe
+COLLECT_LTO_WRAPPER=D:/Strawberry/c/bin/../libexec/gcc/x86_64-w64-mingw32/8.3.0/lto-wrapper.exe
+Target: x86_64-w64-mingw32
+Configured with: ../../../src/gcc-8.3.0/configure --host=x86_64-w64-mingw32 --build=x86_64-w64-mingw32 --target=x86_64-w64-mingw32 --prefix=/mingw64 --enable-shared --enable-static --disable-multilib --enable-languages=c,c++,fortran,lto --enable-libstdcxx-time=yes --enable-threads=posix --enable-libgomp --enable-libatomic --enable-lto --enable-graphite --enable-checking=release --enable-fully-dynamic-string --enable-version-specific-runtime-libs --enable-libstdcxx-filesystem-ts=yes --disable-libstdcxx-pch --disable-libstdcxx-debug --disable-bootstrap --disable-rpath --disable-win32-registry --disable-nls --disable-werror --disable-symvers --with-gnu-as --with-gnu-ld --with-arch=nocona --with-tune=core2 --with-libiconv --with-system-zlib --with-gmp=/opt/build/prerequisites/x86_64-w64-mingw32-static --with-mpfr=/opt/build/prerequisites/x86_64-w64-mingw32-static --with-mpc=/opt/build/prerequisites/x86_64-w64-mingw32-static --with-isl=/opt/build/prerequisites/x86_64-w64-mingw32-static --with-pkgversion='x86_64-posix-seh, Built by strawberryperl.com project' --with-bugurl=https://sourceforge.net/projects/mingw-w64 CFLAGS='-O2 -pipe -fno-ident -I/opt/build/x86_64-830-posix-seh-rt_v6/mingw64/opt/include -I/opt/build/prerequisites/x86_64-zlib-static/include -I/opt/build/prerequisites/x86_64-w64-mingw32-static/include' CXXFLAGS='-O2 -pipe -fno-ident -I/opt/build/x86_64-830-posix-seh-rt_v6/mingw64/opt/include -I/opt/build/prerequisites/x86_64-zlib-static/include -I/opt/build/prerequisites/x86_64-w64-mingw32-static/include' CPPFLAGS=' -I/opt/build/x86_64-830-posix-seh-rt_v6/mingw64/opt/include -I/opt/build/prerequisites/x86_64-zlib-static/include -I/opt/build/prerequisites/x86_64-w64-mingw32-static/include' LDFLAGS='-pipe -fno-ident -L/opt/build/x86_64-830-posix-seh-rt_v6/mingw64/opt/lib -L/opt/build/prerequisites/x86_64-zlib-static/lib -L/opt/build/prerequisites/x86_64-w64-mingw32-static/lib ' LD_FOR_TARGET=/opt/build/x86_64-830-posix-seh-rt_v6/mingw64/bin/ld.exe
+Thread model: posix
+gcc version 8.3.0 (x86_64-posix-seh, Built by strawberryperl.com project)
+```
+
+这个 gcc 是给 posix 系统用的，一看就不对，无奈才改了 PATH 优先级。
+
+猜想 posix 用的是 *.a 的库，win32 用的才是 *.lib 的库
 
 **注意 mingw32 字样。如果不对，请调整 $PATH 优先级。通常它是找不到某某头文件的罪魁祸首，因为平台弄错了。**
 
@@ -322,7 +351,7 @@ automake --add-missing
 make && make install
 ```
 
-##### MSVC 编译
+##### MSVC 编译三个库
 
 1. zlib
 
@@ -343,8 +372,16 @@ popd
 ```bash
 perl Configure VC-WIN32 no-asm --prefix=E:\SourceCode\deps --openssldir=E:\SourceCode\deps
 ms\do_ms.bat
-nmake -f ms\nt.mak install
 nmake -f ms\ntdll.mak install
+nmake -f ms\nt.mak install
+```
+
+新版本
+
+```bash
+perl Configure VC-WIN32 --prefix=E:\SourceCode\deps --openssldir=E:\SourceCode\deps
+nmake
+nmake install_sw
 ```
 
 **在1.0.x之前的版本中,文件为libeay32.dll和ssleay32.dll,在1.1.x之后的版本中，名字是libssl.dll和libcrypto.dll。**
@@ -367,6 +404,8 @@ cmake --build . --target install
 SET(CMAKE_INCLUDE_PATH "E:/SourceCode/deps/include")
 SET(CMAKE_LIBRARY_PATH "E:/SourceCode/deps/lib")
 ```
+
+**做到这里暂时先忘记之前的 MinGW 编译吧。**
 
 ##### 编译 curl
 
@@ -419,4 +458,37 @@ pushd src && mingw32-make -f Makefile.m32 && popd
 )
 
 @REM @echo on
+```
+
+**但是上面的官方做法很坑，各种找不到符号。** 最后还是用 cmake 的方式完成的
+
+```bash
+mkdir build && pushd build
+cmake .. -DCMAKE_USE_OPENSSL=ON -DUSE_ZLIB=ON -DCMAKE_USE_LIBSSH2=ON -DOPENSSL_ROOT_DIR=E:\SourceCode\openssl-OpenSSL_1_1_1i
+cmake --build . --config release
+cmake --install .
+```
+
+因为默认都是 x86 编译，会安装到 C:\Program Files (x86)\CURL 中
+
+这时的 curl.exe 还不能正常启动，需要将 deps/bin 下所有的 dll 拷贝过来才行
+
+##### 判断 curl 是否带 openSSL
+
+```bash
+> curl.exe -V
+curl 7.75.0 (Windows) libcurl/7.75.0 OpenSSL/1.1.1i
+Release-Date: 2021-02-03
+Protocols: dict file ftp ftps gopher gophers http https imap imaps ldap mqtt pop3 pop3s rtsp smb smbs smtp smtps telnet tftp
+Features: AsynchDNS HTTPS-proxy IPv6 Largefile NTLM SSL alt-svc
+```
+
+与原装无加密的比较
+
+```bash
+> curl.exe -V
+curl 7.75.0 (Windows) libcurl/7.75.0
+Release-Date: 2021-02-03
+Protocols: dict file ftp gopher http imap ldap mqtt pop3 rtsp smb smtp telnet tftp
+Features: AsynchDNS IPv6 Largefile NTLM alt-svc
 ```
