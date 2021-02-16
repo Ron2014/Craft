@@ -221,8 +221,8 @@ http://0fps.wordpress.com/2013/07/03/ambient-occlusion-for-minecraft-like-worlds
 编译请在 cmd 敲打
 
 ```bash
-cmake . -G "MinGW Makefiles"
 set PATH=C:\MinGW\bin;%PATH%
+cmake . -G "MinGW Makefiles"
 mingw32-make # 也可以 cmake --build . --config release
 ```
 
@@ -263,6 +263,12 @@ gcc version 9.2.0 (MinGW.org GCC Build-2)
 有个小插曲就是老出现 `unresolved external symbol __imp_curl_easy_init` 的报错
 
 发现这条 error log 前面说的是用的 Strawberry 的 gcc
+
+有没有找对 gcc 看 cmake -G "MinGW Makefiles" 的时候的输出即可
+
+```
+-- Check for working C compiler: C:/MinGW/bin/gcc.exe - skipped
+```
 
 ```
 E:\GitHub\MineCraft>D:\Strawberry\c\bin\gcc.exe -v
@@ -471,7 +477,18 @@ cmake --install .
 
 因为默认都是 x86 编译，会安装到 C:\Program Files (x86)\CURL 中
 
-这时的 curl.exe 还不能正常启动，需要将 deps/bin 下所有的 dll 拷贝过来才行
+这时的 curl.exe 还不能正常启动，需要将 deps/bin 下所有的 dll 拷贝过来才行。
+
+如果嫌麻烦的话，加上 -DBUILD_SHARED_LIBS=OFF 即可
+
+```bash
+mkdir build && pushd build
+cmake .. -DCMAKE_USE_OPENSSL=ON -DUSE_ZLIB=ON -DCMAKE_USE_LIBSSH2=ON -DOPENSSL_ROOT_DIR=E:\SourceCode\openssl-OpenSSL_1_1_1i -DBUILD_SHARED_LIBS=OFF
+cmake --build . --config release
+cmake --install .
+```
+
+但是这样就只是得到一个 lib 文件，没有 dll，craft 编译的时候会导致失败
 
 ##### 判断 curl 是否带 openSSL
 
